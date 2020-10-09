@@ -14,7 +14,7 @@
     "test": "./test"
   },
   "dependencies": {
-    "node-xml": "~1.0.2"
+    "fast-xml-parser": "~3.17.4"
   },
   "devDependencies": {
     "eslint": "^4.13.0",
