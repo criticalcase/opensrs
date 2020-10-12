@@ -5,6 +5,8 @@ var tls = require('tls');
 var util = require('util');
 var crypto = require('crypto');
 var parser = require('fast-xml-parser');
+const { settings } = require('cluster');
+
 
 
 var eol = '\r\n';
@@ -15,7 +17,8 @@ var rpc_handler_port = 55443;
 var defaults = {
   user: null,
   key: null,
-  sandbox: false
+  sandbox: false,
+  verbose: false
 };
 
 
@@ -122,23 +125,43 @@ function buildRequest(host, user, key, xml) {
  */
 function mantainLegacy(parsedObj) {
   let result = {};
-  for (let i in parsedObj['item']) {
-    let attr = parsedObj['item'][i]["attr"]["@_key"];
-    if (parsedObj['item'][i]['value']) {
-      result[attr] = parsedObj['item'][i]['value'];
-    }
-    else {
-      if (parsedObj['item'][i]['dt_assoc']) {
-        result[attr] = mantainLegacy(parsedObj['item'][i]['dt_assoc']);
+  if (parsedObj['item'].length) {
+    for (let i in parsedObj['item']) {
+      let attr = parsedObj['item'][i]["attr"]["@_key"];
+      if (parsedObj['item'][i]['value']) {
+        result[attr] = parsedObj['item'][i]['value'];
       }
-      else if (parsedObj['item'][i]['dt_array']) {
-        let temp = mantainLegacy(parsedObj['item'][i]['dt_array']);
-        result[attr] = [];
-        for (let j in temp) {
-          result[attr].push(temp[j]);
+      else {
+        if (parsedObj['item'][i]['dt_assoc']) {
+          result[attr] = mantainLegacy(parsedObj['item'][i]['dt_assoc']);
+        }
+        else if (parsedObj['item'][i]['dt_array']) {
+          let temp = mantainLegacy(parsedObj['item'][i]['dt_array']);
+          result[attr] = [];
+          for (let j in temp) {
+            result[attr].push(temp[j]);
+          }
         }
       }
     }
+  }
+  else{
+    let attr = parsedObj['item']["attr"]["@_key"];
+      if (parsedObj['item']['value']) {
+        result[attr] = parsedObj['item']['value'];
+      }
+      else {
+        if (parsedObj['item']['dt_assoc']) {
+          result[attr] = mantainLegacy(parsedObj['item']['dt_assoc']);
+        }
+        else if (parsedObj['item']['dt_array']) {
+          let temp = mantainLegacy(parsedObj['item']['dt_array']);
+          result[attr] = [];
+          for (let j in temp) {
+            result[attr].push(temp[j]);
+          }
+        }
+      }
   }
   return result;
 }
@@ -169,7 +192,7 @@ function parseResponse(responseXml, cb) {
     arrayMode: false, //"strict"
     stopNodes: ["parse-me-as-string"]
   };
-  if (parser.validate(responseXml) === true) { 
+  if (parser.validate(responseXml) === true) {
     let parsedOBJ = parser.parse(responseXml, options);
     parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
 
@@ -180,9 +203,9 @@ function parseResponse(responseXml, cb) {
 
 
 module.exports = function (options) {
-
   var settings = extend({}, defaults, options);
   var host = (settings.sandbox) ? 'horizon.opensrs.net' : 'rr-n1-tor.opensrs.net';
+  if (settings.verbose) console.log(`opensrs> ${host}`);
   var activeRequests = 0;
 
   if (typeof settings.user !== 'string' || typeof settings.key !== 'string') {
@@ -228,6 +251,7 @@ module.exports = function (options) {
       .on('error', function (err) { done(err); })
       .on('data', function (buf) { responseRaw += buf.toString(); })
       .on('end', function () {
+        if (settings.verbose) console.log(`opensrs>`, responseRaw);
 
         var lines = responseRaw.split('\n');
         var flag = false, i, responseXml = '';
