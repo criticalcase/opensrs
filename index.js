@@ -5,7 +5,8 @@ var tls = require('tls');
 var util = require('util');
 var crypto = require('crypto');
 var parser = require('fast-xml-parser');
-const { settings } = require('cluster');
+const Entities = require('html-entities').XmlEntities;
+const htmlEntities = new Entities();
 
 
 
@@ -145,23 +146,23 @@ function mantainLegacy(parsedObj) {
       }
     }
   }
-  else{
+  else {
     let attr = parsedObj['item']["attr"]["@_key"];
-      if (parsedObj['item']['value']) {
-        result[attr] = parsedObj['item']['value'];
+    if (parsedObj['item']['value']) {
+      result[attr] = parsedObj['item']['value'];
+    }
+    else {
+      if (parsedObj['item']['dt_assoc']) {
+        result[attr] = mantainLegacy(parsedObj['item']['dt_assoc']);
       }
-      else {
-        if (parsedObj['item']['dt_assoc']) {
-          result[attr] = mantainLegacy(parsedObj['item']['dt_assoc']);
-        }
-        else if (parsedObj['item']['dt_array']) {
-          let temp = mantainLegacy(parsedObj['item']['dt_array']);
-          result[attr] = [];
-          for (let j in temp) {
-            result[attr].push(temp[j]);
-          }
+      else if (parsedObj['item']['dt_array']) {
+        let temp = mantainLegacy(parsedObj['item']['dt_array']);
+        result[attr] = [];
+        for (let j in temp) {
+          result[attr].push(temp[j]);
         }
       }
+    }
   }
   return result;
 }
@@ -193,18 +194,20 @@ function parseResponse(responseXml, cb) {
     stopNodes: ["parse-me-as-string"]
   };
   if (parser.validate(responseXml) === true) {
+    responseXml = htmlEntities.decode(responseXml);
+    
     let parsedOBJ = parser.parse(responseXml, options);
     parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
 
     return cb(null, parsedOBJ);
   }
-
 }
 
 
 module.exports = function (options) {
   var settings = extend({}, defaults, options);
   var host = (settings.sandbox) ? 'horizon.opensrs.net' : 'rr-n1-tor.opensrs.net';
+
   if (settings.verbose) console.log(`opensrs> ${host}`);
   var activeRequests = 0;
 
@@ -252,7 +255,7 @@ module.exports = function (options) {
       .on('data', function (buf) { responseRaw += buf.toString(); })
       .on('end', function () {
         if (settings.verbose) console.log(`opensrs>`, responseRaw);
-
+        
         var lines = responseRaw.split('\n');
         var flag = false, i, responseXml = '';
 
@@ -266,7 +269,7 @@ module.exports = function (options) {
             flag = true;
           }
         }
-
+        
         if (responseXml === '') { return done(null, ''); }
         parseResponse(responseXml, function (err, res) {
           if (err) {
