@@ -61,12 +61,12 @@ function buildDataBlock(data) {
 
   for (key in data) {
     if (data.hasOwnProperty(key)) {
-      if (util.isArray(data[key]) || isNonEmptyObj(data[key])) {
+      if (Array.isArray(data[key]) || isNonEmptyObj(data[key])) {
         str += '<item key="' + key + '">' + eol;
         str += buildDataBlock(data[key]);
         str += '</item>' + eol;
       } else if (data[key]) {
-        str += '<item key="' + key + '">' + data[key] + '</item>' + eol;
+        str += '<item key="' + key + '">' + data[key].trim() + '</item>' + eol;
       }
     }
   }
