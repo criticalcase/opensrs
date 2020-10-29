@@ -5,6 +5,10 @@ var tls = require('tls');
 var util = require('util');
 var crypto = require('crypto');
 var parser = require('fast-xml-parser');
+const Entities = require('html-entities').XmlEntities;
+const htmlEntities = new Entities();
+
+
 
 var eol = '\r\n';
 var rpc_handler_version = '0.9';
@@ -163,6 +167,23 @@ function mantainLegacy(parsedObj) {
   return result;
 }
 
+function traverse(obj, func) {
+  for (var i in obj) {
+    if (obj[i] !== null && typeof (obj[i]) == "object") {
+      //going one step down in the object tree!!
+      traverse(obj[i], func);
+    }
+    else {
+      console.log('apply to ', i, obj[i])
+      func.apply(this, [obj, i]);
+    }
+  }
+}
+
+function decodeHtml(obj, prop) {
+  obj[prop] = htmlEntities.decode(obj[prop]);
+}
+
 //
 // ### Parse XML response asynchronously
 //
@@ -191,6 +212,8 @@ function parseResponse(responseXml, cb) {
   };
   if (parser.validate(responseXml) === true) {
     let parsedOBJ = parser.parse(responseXml, options);
+    parsedOBJ = traverse(parsedOBJ, decodeHtml);
+    
     parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
 
     return cb(null, parsedOBJ);
@@ -249,7 +272,7 @@ module.exports = function (options) {
       .on('data', function (buf) { responseRaw += buf.toString(); })
       .on('end', function () {
         if (settings.verbose) console.log(`opensrs>`, responseRaw);
-        
+
         var lines = responseRaw.split('\n');
         var flag = false, i, responseXml = '';
 
@@ -263,7 +286,7 @@ module.exports = function (options) {
             flag = true;
           }
         }
-        
+
         if (responseXml === '') { return done(null, ''); }
         parseResponse(responseXml, function (err, res) {
           if (err) {
