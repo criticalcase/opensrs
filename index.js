@@ -5,10 +5,6 @@ var tls = require('tls');
 var util = require('util');
 var crypto = require('crypto');
 var parser = require('fast-xml-parser');
-const Entities = require('html-entities').XmlEntities;
-const htmlEntities = new Entities();
-
-
 
 var eol = '\r\n';
 var rpc_handler_version = '0.9';
@@ -194,8 +190,6 @@ function parseResponse(responseXml, cb) {
     stopNodes: ["parse-me-as-string"]
   };
   if (parser.validate(responseXml) === true) {
-    responseXml = htmlEntities.decode(responseXml);
-    
     let parsedOBJ = parser.parse(responseXml, options);
     parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
 
