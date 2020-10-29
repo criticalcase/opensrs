@@ -174,7 +174,6 @@ function traverse(obj, func) {
       traverse(obj[i], func);
     }
     else {
-      console.log('apply to ', i, obj[i])
       func.apply(this, [obj, i]);
     }
   }
