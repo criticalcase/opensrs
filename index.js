@@ -219,7 +219,6 @@ function parseResponse(responseXml, cb) {
   }
 }
 
-
 module.exports = function (options) {
   var settings = extend({}, defaults, options);
   var host = (settings.sandbox) ? 'horizon.opensrs.net' : 'rr-n1-tor.opensrs.net';
