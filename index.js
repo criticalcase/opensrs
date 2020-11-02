@@ -180,7 +180,9 @@ function traverse(obj, func) {
 }
 
 function decodeHtml(obj, prop) {
-  obj[prop] = htmlEntities.decode(obj[prop]);
+  if (typeof obj[prop] == "string") {
+    obj[prop] = htmlEntities.decode(obj[prop]);
+  }
 }
 
 //
@@ -211,10 +213,11 @@ function parseResponse(responseXml, cb) {
   };
   if (parser.validate(responseXml) === true) {
     let parsedOBJ = parser.parse(responseXml, options);
+    console.log(responseXml);
+    console.log(JSON.stringify(parsedOBJ, null, 2));
     traverse(parsedOBJ, decodeHtml);
-    
-    parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
 
+    parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
     return cb(null, parsedOBJ);
   }
 }
