@@ -213,8 +213,6 @@ function parseResponse(responseXml, cb) {
   };
   if (parser.validate(responseXml) === true) {
     let parsedOBJ = parser.parse(responseXml, options);
-    console.log(responseXml);
-    console.log(JSON.stringify(parsedOBJ, null, 2));
     traverse(parsedOBJ, decodeHtml);
 
     parsedOBJ = mantainLegacy(parsedOBJ["OPS_envelope"]["body"]["data_block"]["dt_assoc"]);
