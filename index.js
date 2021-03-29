@@ -66,7 +66,7 @@ function buildDataBlock(data) {
         str += buildDataBlock(data[key]);
         str += '</item>' + eol;
       } else if (data[key]) {
-        str += '<item key="' + key + '">' + data[key].trim() + '</item>' + eol;
+        str += '<item key="' + key + '">' + data[key] + '</item>' + eol;
       }
     }
   }
